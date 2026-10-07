@@ -1,0 +1,545 @@
+html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天吃什么 · 午餐轮盘</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(160deg, #fdf8f2 0%, #f3ebe0 100%);
+    min-height: 100vh;
+    color: #2d2a24;
+    padding: 16px 14px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .wrap { width: 100%; max-width: 520px; }
+
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .sub { color: #8b7e70; font-size: 0.82rem; margin-bottom: 16px; }
+
+  /* 今日信息卡 */
+  .today-card {
+    background: #2d2a24;
+    color: #fff;
+    border-radius: 20px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .today-card .day { font-size: 1.25rem; font-weight: 700; }
+  .today-card .count { font-size: 0.78rem; opacity: 0.75; margin-top: 3px; }
+  .today-card .emoji { font-size: 2rem; }
+
+  /* 主按钮 */
+  .main-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #ff8a4c, #ff6b35);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 18px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -6px rgba(255, 107, 53, 0.5);
+    transition: transform 0.1s;
+    margin-bottom: 14px;
+  }
+  .main-btn:active { transform: scale(0.97); }
+  .main-btn:disabled {
+    background: #ccc5bc;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* 结果展示 */
+  .result {
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px 18px;
+    text-align: center;
+    margin-bottom: 14px;
+    border: 2px solid #ffe1cc;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+  .result.pop { animation: pop 0.4s ease; }
+  @keyframes pop {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .result .label { font-size: 0.75rem; color: #b1a69b; letter-spacing: 2px; margin-bottom: 6px; }
+  .result .name { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+  .result .note { font-size: 0.8rem; color: #8b7e70; margin-top: 6px; }
+  .result.empty .name { font-size: 1rem; color: #b1a69b; font-weight: 500; }
+
+  /* 餐厅列表 */
+  .section-title {
+    font-size: 0.78rem;
+    color: #8b7e70;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin: 18px 0 8px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title span { font-weight: 400; color: #b1a69b; }
+
+  .rest-list { display: flex; flex-direction: column; gap: 8px; }
+  .rest-item {
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #efe7dd;
+    font-size: 0.92rem;
+  }
+  .rest-item .info { flex: 1; min-width: 0; }
+  .rest-item .nm { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .rest-item .nm .em { font-size: 1.1rem; }
+  .rest-item .hrs { font-size: 0.72rem; color: #9b8f82; margin-top: 3px; }
+  .rest-item .del {
+    background: #f7f2ec;
+    border: none;
+    color: #c26a5a;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  .rest-item .del:active { background: #eadcd1; }
+  .rest-item.off { opacity: 0.42; }
+
+  /* 添加餐厅面板 */
+  .add-panel {
+    background: #fff;
+    border-radius: 20px;
+    padding: 16px;
+    margin-top: 12px;
+    border: 1px solid #efe7dd;
+    display: none;
+  }
+  .add-panel.show { display: block; }
+  .add-panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+  .field { margin-bottom: 10px; }
+  .field label { font-size: 0.75rem; color: #8b7e70; display: block; margin-bottom: 4px; }
+  .field input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e4d9cd;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    background: #fdfbf8;
+    outline: none;
+    font-family: inherit;
+  }
+  .field input[type="text"]:focus { border-color: #ff8a4c; }
+
+  .days-picker {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .days-picker button {
+    flex: 1;
+    min-width: 42px;
+    padding: 8px 0;
+    border: 1px solid #e4d9cd;
+    background: #fdfbf8;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    color: #8b7e70;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .days-picker button.on {
+    background: #2d2a24;
+    color: #fff;
+    border-color: #2d2a24;
+  }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 14px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: #2d2a24; color: #fff; }
+  .btn-primary:active { background: #443f37; }
+  .btn-ghost { background: #f2ece5; color: #6b6258; }
+  .btn-ghost:active { background: #e8e0d6; }
+
+  .toggle-add {
+    background: transparent;
+    border: 1.5px dashed #d5c8ba;
+    color: #8b7e70;
+    border-radius: 14px;
+    padding: 12px;
+    width: 100%;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 12px;
+  }
+  .toggle-add:active { background: #f5efe7; }
+
+  .empty-tip {
+    text-align: center;
+    color: #b1a69b;
+    font-size: 0.85rem;
+    padding: 24px 10px;
+    line-height: 1.6;
+  }
+
+  .footer { text-align: center; font-size: 0.68rem; color: #c4b9ac; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🍜 今天吃什么</h1>
+  <div class="sub">根据营业日筛选 · 一键帮你决定</div>
+
+  <!-- 今日信息 -->
+  <div class="today-card">
+    <div>
+      <div class="day" id="todayDay">星期三</div>
+      <div class="count" id="todayCount">今天 0 家营业</div>
+    </div>
+    <div class="emoji" id="todayEmoji">📅</div>
+  </div>
+
+  <!-- 主按钮：随机选 -->
+  <button class="main-btn" id="pickBtn" disabled>🎲 帮我选一家</button>
+
+  <!-- 结果 -->
+  <div class="result empty" id="result">
+    <div class="label">今日午餐</div>
+    <div class="name" id="resultName">点击上方按钮</div>
+  </div>
+
+  <!-- 今日营业餐厅列表 -->
+  <div class="section-title">今日营业 <span id="openCount"></span></div>
+  <div class="rest-list" id="openList"></div>
+
+  <!-- 全部餐厅管理 -->
+  <div class="section-title">全部餐厅 <span id="allCount"></span></div>
+  <div class="rest-list" id="allList"></div>
+
+  <!-- 添加按钮 -->
+  <button class="toggle-add" id="toggleAdd">＋ 添加餐厅</button>
+
+  <!-- 添加面板 -->
+  <div class="add-panel" id="addPanel">
+    <h3>添加新餐厅</h3>
+    <div class="field">
+      <label>餐厅名称</label>
+      <input type="text" id="inName" placeholder="例如：巷口牛肉面" maxlength="20">
+    </div>
+    <div class="field">
+      <label>图标（可选，一个 emoji）</label>
+      <input type="text" id="inEmoji" placeholder="🍜" maxlength="4">
+    </div>
+    <div class="field">
+      <label>营业日（点击选择，未选中的表示休息）</label>
+      <div class="days-picker" id="daysPicker">
+        <button data-d="1">一</button>
+        <button data-d="2">二</button>
+        <button data-d="3">三</button>
+        <button data-d="4">四</button>
+        <button data-d="5">五</button>
+        <button data-d="6">六</button>
+        <button data-d="0">日</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="cancelAdd">取消</button>
+      <button class="btn btn-primary" id="saveAdd">保存</button>
+    </div>
+  </div>
+
+  <div class="footer">数据保存在本机浏览器 · 永久有效</div>
+</div>
+
+<script>
+(function(){
+  // ============ 数据存储 ============
+  const STORAGE_KEY = 'lunch_restaurants_v1';
+  const DAY_NAMES = ['周日','周一','周二','周三','周四','周五','周六'];
+
+  // 默认示例数据（首次打开时使用，可删除）
+  const DEFAULT_DATA = [
+    { id: 1, name: '巷口牛肉面', emoji: '🍜', days: [1,2,3,4,5] },
+    { id: 2, name: '绿禾轻食',   emoji: '🥗', days: [3,4,5,6,0] },
+    { id: 3, name: '暖阳咖喱',   emoji: '🍛', days: [3,4,5,6,0] },
+    { id: 4, name: '老北京炸酱面', emoji: '🍝', days: [1,2,3,4,5,6,0] }
+  ];
+
+  let restaurants = [];
+  let today = new Date().getDay();  // 0-6
+
+  // 加载数据
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        restaurants = JSON.parse(raw);
+      } else {
+        restaurants = DEFAULT_DATA.slice();
+        save();
+      }
+    } catch(e) {
+      restaurants = DEFAULT_DATA.slice();
+    }
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(restaurants)); } catch(e){}
+  }
+
+  // ============ DOM ============
+  const $ = id => document.getElementById(id);
+  const todayDayEl = $('todayDay');
+  const todayCountEl = $('todayCount');
+  const todayEmojiEl = $('todayEmoji');
+  const pickBtn = $('pickBtn');
+  const resultEl = $('result');
+  const resultNameEl = $('resultName');
+  const openListEl = $('openList');
+  const allListEl = $('allList');
+  const openCountEl = $('openCount');
+  const allCountEl = $('allCount');
+  const toggleAdd = $('toggleAdd');
+  const addPanel = $('addPanel');
+  const inName = $('inName');
+  const inEmoji = $('inEmoji');
+  const daysPicker = $('daysPicker');
+  const cancelAdd = $('cancelAdd');
+  const saveAdd = $('saveAdd');
+
+  // 星期几 emoji
+  const DAY_EMOJI = ['☀️','🌙','🔥','🌿','⚡','🎉','🥳'];
+
+  // ============ 渲染 ============
+  function getOpenToday() {
+    return restaurants.filter(r => r.days.includes(today));
+  }
+
+  function renderTodayHeader() {
+    todayDayEl.textContent = DAY_NAMES[today];
+    const open = getOpenToday();
+    todayCountEl.textContent = `今天 ${open.length} 家营业`;
+    todayEmojiEl.textContent = DAY_EMOJI[today];
+  }
+
+  function renderOpenList() {
+    const open = getOpenToday();
+    openCountEl.textContent = `${open.length} 家`;
+    if (open.length === 0) {
+      openListEl.innerHTML = `<div class="empty-tip">今天没有营业的餐厅 😢<br>去下面添加或调整营业日</div>`;
+      return;
+    }
+    openListEl.innerHTML = open.map(r => `
+      <div class="rest-item">
+        <div class="info">
+          <div class="nm"><span class="em">${r.emoji || '🍽️'}</span>${escapeHtml(r.name)}</div>
+          <div class="hrs">营业：${daysText(r.days)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderAllList() {
+    allCountEl.textContent = `${restaurants.length} 家`;
+    if (restaurants.length === 0) {
+      allListEl.innerHTML = `<div class="empty-tip">还没有餐厅，点下面添加吧</div>`;
+      return;
+    }
+    // 按是否今日营业排序：营业的在前
+    const sorted = restaurants.slice().sort((a,b) => {
+      const ao = a.days.includes(today) ? 0 : 1;
+      const bo = b.days.includes(today) ? 0 : 1;
+      return ao - bo;
+    });
+    allListEl.innerHTML = sorted.map(r => {
+      const off = !r.days.includes(today);
+      return `
+        <div class="rest-item ${off ? 'off' : ''}">
+          <div class="info">
+            <div class="nm"><span class="em">${r.emoji || '🍽️'}</span>${escapeHtml(r.name)}</div>
+            <div class="hrs">营业：${daysText(r.days)}${off ? '（今日休息）' : ''}</div>
+          </div>
+          <button class="del" data-id="${r.id}" aria-label="删除">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    // 删除事件
+    allListEl.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = Number(btn.dataset.id);
+        if (!confirm('确定删除这家餐厅？')) return;
+        restaurants = restaurants.filter(r => r.id !== id);
+        save();
+        renderAll();
+      });
+    });
+  }
+
+  function renderAll() {
+    renderTodayHeader();
+    renderOpenList();
+    renderAllList();
+
+    const open = getOpenToday();
+    pickBtn.disabled = open.length === 0;
+    pickBtn.textContent = open.length === 0 ? '今日无营业餐厅' : '🎲 帮我选一家';
+  }
+
+  function daysText(days) {
+    if (days.length === 7) return '每天';
+    // 判断是否连续
+    const sorted = days.slice().sort((a,b)=>a-b);
+    // 特殊：周三到周日 [3,4,5,6,0]
+    if (days.length === 5 && days.includes(0) && days.includes(3) && days.includes(4) && days.includes(5) && days.includes(6)) {
+      return '周三至周日';
+    }
+    return sorted.map(d => DAY_NAMES[d]).join('、');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  // ============ 抽取逻辑 ============
+  function pickOne() {
+    const open = getOpenToday();
+    if (open.length === 0) return;
+    // 避免连续两次同一家（如果多于1家）
+    let chosen;
+    const lastName = sessionStorage.getItem('last_pick');
+    if (open.length > 1) {
+      const pool = open.filter(r => r.name !== lastName);
+      chosen = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+      chosen = open[0];
+    }
+    sessionStorage.setItem('last_pick', chosen.name);
+
+    // 显示
+    resultEl.classList.remove('empty');
+    resultNameEl.textContent = `${chosen.emoji || '🍽️'} ${chosen.name}`;
+    resultEl.classList.remove('pop');
+    void resultEl.offsetWidth; // 触发重排
+    resultEl.classList.add('pop');
+  }
+
+  // ============ 添加餐厅 ============
+  let selectedDays = new Set([1,2,3,4,5]); // 默认工作日
+
+  function resetAddForm() {
+    inName.value = '';
+    inEmoji.value = '';
+    selectedDays = new Set([1,2,3,4,5]);
+    updateDaysUI();
+  }
+
+  function updateDaysUI() {
+    daysPicker.querySelectorAll('button').forEach(b => {
+      const d = Number(b.dataset.d);
+      b.classList.toggle('on', selectedDays.has(d));
+    });
+  }
+
+  daysPicker.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const d = Number(btn.dataset.d);
+    if (selectedDays.has(d)) selectedDays.delete(d);
+    else selectedDays.add(d);
+    updateDaysUI();
+  });
+
+  toggleAdd.addEventListener('click', () => {
+    const showing = addPanel.classList.toggle('show');
+    toggleAdd.textContent = showing ? '收起' : '＋ 添加餐厅';
+    if (showing) {
+      resetAddForm();
+      inName.focus();
+    }
+  });
+
+  cancelAdd.addEventListener('click', () => {
+    addPanel.classList.remove('show');
+    toggleAdd.textContent = '＋ 添加餐厅';
+  });
+
+  saveAdd.addEventListener('click', () => {
+    const name = inName.value.trim();
+    if (!name) { alert('请输入餐厅名称'); inName.focus(); return; }
+    if (selectedDays.size === 0) { alert('请至少选择一个营业日'); return; }
+    const emoji = inEmoji.value.trim() || '🍽️';
+    const days = Array.from(selectedDays).sort((a,b)=>a-b);
+
+    // 检查重名
+    if (restaurants.some(r => r.name === name)) {
+      if (!confirm('已有同名餐厅，仍要添加吗？')) return;
+    }
+
+    restaurants.push({
+      id: Date.now(),
+      name,
+      emoji,
+      days
+    });
+    save();
+    addPanel.classList.remove('show');
+    toggleAdd.textContent = '＋ 添加餐厅';
+    renderAll();
+  });
+
+  // ============ 按钮 ============
+  pickBtn.addEventListener('click', pickOne);
+
+  // ============ 启动 ============
+  load();
+  renderAll();
+
+  // 每次打开页面刷新今日（防止跨天）
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      const nowDay = new Date().getDay();
+      if (nowDay !== today) {
+        today = nowDay;
+        renderAll();
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
